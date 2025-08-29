@@ -25,7 +25,7 @@ export interface ExportRequest {
 
 // API Configuration
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-backend-domain.com'  // TODO: Update with actual production URL
+  ? 'https://centris-extractor-backend.onrender.com'  // Render backend URL
   : 'http://localhost:8001';
 
 class CentrisAPI {

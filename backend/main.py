@@ -33,6 +33,11 @@ app.add_middleware(
         "http://localhost:8080",
         "https://*.vercel.app",
         "https://centris-extractor-*.vercel.app",
+        "https://centris-extractor-web.vercel.app",
+        "https://centris-extractor-ge1zksn76-charles-antoines-projects-128c98b8.vercel.app",
+        # Add Render domains
+        "https://*.onrender.com",
+        "https://centris-extractor-backend.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -178,10 +183,14 @@ async def export_excel(data: Dict[str, Any]):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    
+    port = int(os.environ.get("PORT", 8001))
+    
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
-        port=8001, 
-        reload=True,
+        port=port, 
+        reload=False,  # Disable reload in production
         log_level="info"
     )
