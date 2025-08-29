@@ -3,11 +3,25 @@
  */
 
 export interface PropertyData {
+  // Basic fields for backward compatibility
   address: string;
   price: string;
   type: string;
   city?: string;
   street?: string;
+  
+  // Enhanced fields from Python backend (11 columns format)
+  'Centris #'?: string;
+  'Adresse complète'?: string;
+  'Quartier'?: string;
+  'Type de propriété'?: string;
+  'Prix actuel'?: string;
+  'Prix original'?: string;
+  'Propriétaire(s): nom(s) et adresse(s)'?: string;
+  'Représentant(s): nom(s) et adresse(s)'?: string;
+  'Courtier(s): nom(s)'?: string;
+  'Courtier(s): téléphone(s)'?: string;
+  'Courtier(s): courriel(s)'?: string;
 }
 
 export interface ExtractResponse {
@@ -23,9 +37,10 @@ export interface ExportRequest {
   properties: PropertyData[];
 }
 
-// API Configuration - Use Vercel API routes for serverless deployment
+// API Configuration
+const PYTHON_BACKEND_URL = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'http://localhost:8001';
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? ''  // Use relative URLs for Vercel API routes
+  ? PYTHON_BACKEND_URL  // Use Python backend for real extraction in production
   : 'http://localhost:8001';  // Local FastAPI backend for development
 
 class CentrisAPI {

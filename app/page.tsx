@@ -210,32 +210,61 @@ export default function Home() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
+              <table className="w-full border-collapse border border-gray-300 text-sm">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="border border-gray-300 px-4 py-2 text-left">
-                      Adresse
-                    </th>
-                    <th className="border border-gray-300 px-4 py-2 text-left">
-                      Prix
-                    </th>
-                    <th className="border border-gray-300 px-4 py-2 text-left">
-                      Type
-                    </th>
+                    {/* Check if we have enhanced data */}
+                    {extractedData.properties[0]?.['Centris #'] ? (
+                      // Enhanced table headers (11 columns)
+                      <>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Centris #</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Adresse complète</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Quartier</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Type de propriété</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Prix actuel</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Prix original</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Propriétaire(s)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Représentant(s)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Courtier(s)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Téléphone(s)</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left text-xs">Courriel(s)</th>
+                      </>
+                    ) : (
+                      // Basic table headers (3 columns for backward compatibility)
+                      <>
+                        <th className="border border-gray-300 px-4 py-2 text-left">Adresse</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">Prix</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">Type</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {extractedData.properties.map((property, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="border border-gray-300 px-4 py-2">
-                        {property.address}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 font-semibold text-green-600">
-                        {property.price}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {property.type}
-                      </td>
+                      {property['Centris #'] ? (
+                        // Enhanced table row (11 columns)
+                        <>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Centris #']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Adresse complète']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Quartier']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Type de propriété']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs font-semibold text-green-600">{property['Prix actuel']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs text-gray-600">{property['Prix original']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Propriétaire(s): nom(s) et adresse(s)']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Représentant(s): nom(s) et adresse(s)']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs">{property['Courtier(s): nom(s)']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs text-blue-600">{property['Courtier(s): téléphone(s)']}</td>
+                          <td className="border border-gray-300 px-2 py-2 text-xs text-blue-600">{property['Courtier(s): courriel(s)']}</td>
+                        </>
+                      ) : (
+                        // Basic table row (3 columns for backward compatibility)
+                        <>
+                          <td className="border border-gray-300 px-4 py-2">{property.address}</td>
+                          <td className="border border-gray-300 px-4 py-2 font-semibold text-green-600">{property.price}</td>
+                          <td className="border border-gray-300 px-4 py-2">{property.type}</td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>

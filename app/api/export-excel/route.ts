@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface ExportPropertyData {
+  'Centris #'?: string;
+  'Adresse complète'?: string;
+  'Quartier'?: string;
+  'Type de propriété'?: string;
+  'Prix actuel'?: string;
+  'Prix original'?: string;
+  'Propriétaire(s): nom(s) et adresse(s)'?: string;
+  'Représentant(s): nom(s) et adresse(s)'?: string;
+  'Courtier(s): nom(s)'?: string;
+  'Courtier(s): téléphone(s)'?: string;
+  'Courtier(s): courriel(s)'?: string;
+  // Basic fields for backward compatibility
+  address?: string;
+  price?: string;
+  type?: string;
+  city?: string;
+  street?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -14,10 +34,39 @@ export async function POST(request: NextRequest) {
 
     // Create Excel-compatible CSV with BOM for proper encoding
     const BOM = '\uFEFF'; // UTF-8 BOM for Excel compatibility
-    const csvHeader = 'Adresse,Prix,Type,Ville,Rue\r\n';
-    const csvData = properties.map((prop: { address: string; price: string; type: string; city?: string; street?: string }) => 
-      `"${prop.address.replace(/"/g, '""')}","${prop.price.replace(/"/g, '""')}","${prop.type.replace(/"/g, '""')}","${(prop.city || '').replace(/"/g, '""')}","${(prop.street || '').replace(/"/g, '""')}"`
-    ).join('\r\n');
+    
+    // Check if we have enhanced data (11 columns) or basic data (5 columns)
+    const hasEnhancedData = properties.length > 0 && properties[0]['Centris #'];
+    
+    let csvHeader: string;
+    let csvData: string;
+    
+    if (hasEnhancedData) {
+      // Enhanced format with all 11 columns
+      csvHeader = 'Centris #,Adresse complète,Quartier,Type de propriété,Prix actuel,Prix original,Propriétaire(s): nom(s) et adresse(s),Représentant(s): nom(s) et adresse(s),Courtier(s): nom(s),Courtier(s): téléphone(s),Courtier(s): courriel(s)\r\n';
+      csvData = properties.map((prop: ExportPropertyData) => {
+        const values = [
+          prop['Centris #'] || '',
+          prop['Adresse complète'] || prop.address || '',
+          prop['Quartier'] || '',
+          prop['Type de propriété'] || prop.type || '',
+          prop['Prix actuel'] || prop.price || '',
+          prop['Prix original'] || '',
+          prop['Propriétaire(s): nom(s) et adresse(s)'] || '',
+          prop['Représentant(s): nom(s) et adresse(s)'] || '',
+          prop['Courtier(s): nom(s)'] || '',
+          prop['Courtier(s): téléphone(s)'] || '',
+          prop['Courtier(s): courriel(s)'] || ''
+        ];
+        return values.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
+      }).join('\r\n');
+    } else {
+      // Basic format (backward compatibility)
+      csvHeader = 'Adresse,Prix,Type,Ville,Rue\r\n';
+      csvData = properties.map((prop: { address: string; price: string; type: string; city?: string; street?: string }) => 
+        `"${prop.address.replace(/"/g, '""')}","${prop.price.replace(/"/g, '""')}","${prop.type.replace(/"/g, '""')}","${(prop.city || '').replace(/"/g, '""')}","${(prop.street || '').replace(/"/g, '""')}"`
+      ).join('\r\n');
+    }
     
     const csvContent = BOM + csvHeader + csvData;
     
