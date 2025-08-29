@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     // Create simple CSV data (Excel alternative for serverless)
     const csvHeader = 'Adresse,Prix,Type,Ville,Rue\n';
-    const csvData = properties.map((prop: any) => 
+    const csvData = properties.map((prop: { address: string; price: string; type: string; city?: string; street?: string }) => 
       `"${prop.address}","${prop.price}","${prop.type}","${prop.city || ''}","${prop.street || ''}"`
     ).join('\n');
     
