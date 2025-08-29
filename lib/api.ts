@@ -23,10 +23,10 @@ export interface ExportRequest {
   properties: PropertyData[];
 }
 
-// API Configuration
+// API Configuration - Use Vercel API routes for serverless deployment
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://centris-extractor-backend.onrender.com'  // Render backend URL
-  : 'http://localhost:8001';
+  ? ''  // Use relative URLs for Vercel API routes
+  : 'http://localhost:8001';  // Local FastAPI backend for development
 
 class CentrisAPI {
   private baseURL: string;
@@ -42,14 +42,17 @@ class CentrisAPI {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${this.baseURL}/extract-pdf`, {
+    // Use Vercel API route in production, FastAPI locally
+    const endpoint = this.baseURL ? `${this.baseURL}/extract-pdf` : '/api/extract-pdf';
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      throw new Error(errorData.detail || errorData.error || `HTTP error! status: ${response.status}`);
     }
 
     return response.json();
@@ -59,7 +62,10 @@ class CentrisAPI {
    * Export data to Excel
    */
   async exportToExcel(data: ExportRequest): Promise<Blob> {
-    const response = await fetch(`${this.baseURL}/export-excel`, {
+    // Use Vercel API route in production, FastAPI locally
+    const endpoint = this.baseURL ? `${this.baseURL}/export-excel` : '/api/export-excel';
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +75,7 @@ class CentrisAPI {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      throw new Error(errorData.detail || errorData.error || `HTTP error! status: ${response.status}`);
     }
 
     return response.blob();
@@ -79,7 +85,10 @@ class CentrisAPI {
    * Health check
    */
   async healthCheck(): Promise<{ api: string; extraction_service: string }> {
-    const response = await fetch(`${this.baseURL}/health`);
+    // Use Vercel API route in production, FastAPI locally
+    const endpoint = this.baseURL ? `${this.baseURL}/health` : '/api/health';
+    
+    const response = await fetch(endpoint);
     
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status}`);
