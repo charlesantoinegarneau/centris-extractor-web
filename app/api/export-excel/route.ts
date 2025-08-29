@@ -12,20 +12,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create simple CSV data (Excel alternative for serverless)
-    const csvHeader = 'Adresse,Prix,Type,Ville,Rue\n';
+    // Create Excel-compatible CSV with BOM for proper encoding
+    const BOM = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+    const csvHeader = 'Adresse,Prix,Type,Ville,Rue\r\n';
     const csvData = properties.map((prop: { address: string; price: string; type: string; city?: string; street?: string }) => 
-      `"${prop.address}","${prop.price}","${prop.type}","${prop.city || ''}","${prop.street || ''}"`
-    ).join('\n');
+      `"${prop.address.replace(/"/g, '""')}","${prop.price.replace(/"/g, '""')}","${prop.type.replace(/"/g, '""')}","${(prop.city || '').replace(/"/g, '""')}","${(prop.street || '').replace(/"/g, '""')}"`
+    ).join('\r\n');
     
-    const csvContent = csvHeader + csvData;
+    const csvContent = BOM + csvHeader + csvData;
     
-    // Return CSV file (Excel-compatible)
+    // Return Excel-compatible CSV file
+    const excelFilename = filename?.replace('.pdf', '.csv') || 'centris_extraction.csv';
+    
     return new NextResponse(csvContent, {
       status: 200,
       headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="${filename?.replace('.pdf', '.csv') || 'centris_extraction.csv'}"`
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${excelFilename}"`,
+        'Cache-Control': 'no-cache'
       }
     });
     

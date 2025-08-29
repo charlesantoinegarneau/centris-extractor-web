@@ -117,12 +117,18 @@ export const centrisAPI = new CentrisAPI();
 // Export class for custom instances
 export { CentrisAPI };
 
-// Utility function to download blob as file
+// Utility function to download blob as file with proper MIME type
 export function downloadBlob(blob: Blob, filename: string) {
-  const url = window.URL.createObjectURL(blob);
+  // Ensure CSV has proper MIME type for Excel compatibility
+  const csvBlob = new Blob([blob], { 
+    type: 'text/csv; charset=utf-8' 
+  });
+  
+  const url = window.URL.createObjectURL(csvBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename;
+  a.download = filename.endsWith('.csv') ? filename : filename.replace(/\.[^/.]+$/, '.csv');
+  a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
