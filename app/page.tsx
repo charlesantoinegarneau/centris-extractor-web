@@ -1,19 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "react-hot-toast";
+import { centrisAPI, PropertyData, downloadBlob } from "../lib/api";
 
 export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<{
     filename: string;
-    properties: Array<{
-      address: string;
-      price: string;
-      type: string;
-    }>;
+    properties: PropertyData[];
+    total_properties: number;
   } | null>(null);
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
+
+  // Check backend connection on component mount
+  useEffect(() => {
+    const checkBackend = async () => {
+      const isConnected = await centrisAPI.testConnection();
+      setBackendConnected(isConnected);
+      if (!isConnected) {
+        toast.error("Backend indisponible - mode démo activé");
+      } else {
+        toast.success("Backend connecté - extraction réelle disponible");
+      }
+    };
+    checkBackend();
+  }, []);
 
   const onDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -27,18 +40,45 @@ export default function Home() {
     setIsProcessing(true);
     toast.success(`Traitement de ${file.name} en cours...`);
 
-    // TODO: Intégrer l'extraction Python ici
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      if (backendConnected) {
+        // Use real API
+        const result = await centrisAPI.extractPDF(file);
+        setExtractedData({
+          filename: result.filename,
+          properties: result.properties,
+          total_properties: result.total_properties,
+        });
+        toast.success(`Extraction réussie: ${result.total_properties} propriétés trouvées!`);
+      } else {
+        // Fallback to demo data
+        setTimeout(() => {
+          setExtractedData({
+            filename: file.name,
+            properties: [
+              { address: "123 Rue Example, Montréal", price: "450,000$", type: "Condo" },
+              { address: "456 Avenue Test, Laval", price: "380,000$", type: "Maison" },
+            ],
+            total_properties: 2,
+          });
+          toast.success("Extraction démo terminée (backend indisponible)");
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Extraction error:', error);
+      toast.error(`Erreur d'extraction: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      
+      // Fallback to demo data on error
       setExtractedData({
         filename: file.name,
         properties: [
-          { address: "123 Rue Example, Montréal", price: "450,000$", type: "Condo" },
-          { address: "456 Avenue Test, Laval", price: "380,000$", type: "Maison" },
-        ]
+          { address: "Extraction échouée - données d'exemple", price: "N/A", type: "Demo" },
+        ],
+        total_properties: 1,
       });
-      toast.success("Extraction terminée avec succès!");
-    }, 3000);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -47,9 +87,34 @@ export default function Home() {
     multiple: false,
   });
 
-  const downloadExcel = () => {
-    toast.success("Export Excel démarré!");
-    // TODO: Implémenter l'export Excel
+  const downloadExcel = async () => {
+    if (!extractedData) return;
+    
+    try {
+      toast.success("Export Excel en cours...");
+      
+      if (backendConnected) {
+        // Use real API for Excel export
+        const blob = await centrisAPI.exportToExcel({
+          filename: extractedData.filename,
+          properties: extractedData.properties,
+        });
+        
+        downloadBlob(blob, extractedData.filename.replace('.pdf', '.xlsx'));
+        toast.success("Export Excel terminé!");
+      } else {
+        // Fallback demo export using xlsx library
+        const XLSX = await import('xlsx');
+        const ws = XLSX.utils.json_to_sheet(extractedData.properties);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Centris Data');
+        XLSX.writeFile(wb, extractedData.filename.replace('.pdf', '.xlsx'));
+        toast.success("Export Excel démo terminé!");
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(`Erreur d'export: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
   };
 
   return (
@@ -63,6 +128,26 @@ export default function Home() {
           <p className="text-lg text-gray-600">
             Extrayez automatiquement les données immobilières de vos PDF Centris
           </p>
+          
+          {/* Backend Status Indicator */}
+          <div className="mt-4 flex justify-center">
+            {backendConnected === null ? (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                Vérification du backend...
+              </div>
+            ) : backendConnected ? (
+              <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Extraction réelle activée
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                Mode démo (backend indisponible)
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Upload Zone */}

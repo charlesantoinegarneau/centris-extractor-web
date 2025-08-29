@@ -1,0 +1,121 @@
+/**
+ * API service for Centris Extractor backend
+ */
+
+export interface PropertyData {
+  address: string;
+  price: string;
+  type: string;
+  city?: string;
+  street?: string;
+}
+
+export interface ExtractResponse {
+  success: boolean;
+  filename: string;
+  total_properties: number;
+  properties: PropertyData[];
+  message: string;
+}
+
+export interface ExportRequest {
+  filename: string;
+  properties: PropertyData[];
+}
+
+// API Configuration
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://your-backend-domain.com'  // TODO: Update with actual production URL
+  : 'http://localhost:8001';
+
+class CentrisAPI {
+  private baseURL: string;
+
+  constructor(baseURL: string = API_BASE_URL) {
+    this.baseURL = baseURL;
+  }
+
+  /**
+   * Upload and extract PDF data
+   */
+  async extractPDF(file: File): Promise<ExtractResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${this.baseURL}/extract-pdf`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Export data to Excel
+   */
+  async exportToExcel(data: ExportRequest): Promise<Blob> {
+    const response = await fetch(`${this.baseURL}/export-excel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * Health check
+   */
+  async healthCheck(): Promise<{ api: string; extraction_service: string }> {
+    const response = await fetch(`${this.baseURL}/health`);
+    
+    if (!response.ok) {
+      throw new Error(`Health check failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Test connection to backend
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.healthCheck();
+      return true;
+    } catch (error) {
+      console.error('Backend connection failed:', error);
+      return false;
+    }
+  }
+}
+
+// Export singleton instance
+export const centrisAPI = new CentrisAPI();
+
+// Export class for custom instances
+export { CentrisAPI };
+
+// Utility function to download blob as file
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
